@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Instagram Data Extractor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+        h1 {
+            color: #E1306C;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .input-section, .output-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .output-container {
+            display: flex;
+            gap: 20px;
+        }
+        .output-box {
+            flex: 1;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: monospace;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #E1306C;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #C13584;
+        }
+        .list-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background: white;
+        }
+        .list-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #E1306C;
+        }
+        .copy-btn {
+            background-color: #405DE6;
+            margin-top: 10px;
+        }
+        .copy-btn:hover {
+            background-color: #3A4BC7;
+        }
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .tab-btn {
+            flex: 1;
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .tab-btn.active {
+            background-color: white;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .stats {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Instagram Data Extractor</h1>
+    
+    <div class="container">
+        <div class="input-section">
+            <h2>Paste your Instagram HTML:</h2>
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="openTab('followers')">Followers</button>
+                <button class="tab-btn" onclick="openTab('following')">Following</button>
+            </div>
+            
+            <div id="followers" class="tab-content active">
+                <textarea id="followersInput" placeholder="Paste Instagram followers HTML here..."></textarea>
+            </div>
+            
+            <div id="following" class="tab-content">
+                <textarea id="followingInput" placeholder="Paste Instagram following HTML here..."></textarea>
+            </div>
+            
+            <button id="extractBtn">Extract Data</button>
+        </div>
+        
+        <div class="output-section">
+            <h2>Extracted Data:</h2>
+            <div class="output-container">
+                <div class="output-box">
+                    <div class="list-title">Followers (<span id="followersCount">0</span>)</div>
+                    <div class="list-container" id="followersList"></div>
+                    <button id="copyFollowersBtn" class="copy-btn">Copy Followers</button>
+                    <div class="stats" id="followersStats"></div>
+                </div>
+                <div class="output-box">
+                    <div class="list-title">Following (<span id="followingCount">0</span>)</div>
+                    <div class="list-container" id="followingList"></div>
+                    <button id="copyFollowingBtn" class="copy-btn">Copy Following</button>
+                    <div class="stats" id="followingStats"></div>
+                </div>
+            </div>
+            <button id="copyAllBtn">Copy All Results</button>
+            <div class="stats" id="comparisonStats"></div>
+        </div>
+    </div>
+
+    <script>
+        // Tab functionality
+        function openTab(tabName) {
+            const tabContents = document.getElementsByClassName('tab-content');
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove('active');
+            }
+            
+            const tabButtons = document.getElementsByClassName('tab-btn');
+            for (let i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove('active');
+            }
+            
+            document.getElementById(tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        // Extract data function
+        function extractUsernames(html) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            const links = tempDiv.querySelectorAll('a[target="_blank"]');
+            const usernames = [];
+            
+            links.forEach(link => {
+                const username = link.textContent.trim();
+                if (username && !username.match(/^\d/) && !link.href.includes('facebook.com')) {
+                    usernames.push(username);
+                }
+            });
+            
+            return usernames;
+        }
+
+        // Main extract function
+        document.getElementById('extractBtn').addEventListener('click', function() {
+            const followersHTML = document.getElementById('followersInput').value;
+            const followingHTML = document.getElementById('followingInput').value;
+            
+            // Extract followers
+            const followersList = document.getElementById('followersList');
+            followersList.innerHTML = '';
+            
+            let followers = [];
+            if (followersHTML.trim()) {
+                followers = extractUsernames(followersHTML);
+                document.getElementById('followersCount').textContent = followers.length;
+                
+                followers.forEach(username => {
+                    const div = document.createElement('div');
+                    div.textContent = username;
+                    followersList.appendChild(div);
+                });
+                
+                document.getElementById('followersStats').textContent = 
+                    `Newest: ${getNewestDate(followersHTML)} | Oldest: ${getOldestDate(followersHTML)}`;
+            } else {
+                document.getElementById('followersCount').textContent = '0';
+                document.getElementById('followersStats').textContent = 'No data extracted';
+            }
+            
+            // Extract following
+            const followingList = document.getElementById('followingList');
+            followingList.innerHTML = '';
+            
+            let following = [];
+            if (followingHTML.trim()) {
+                following = extractUsernames(followingHTML);
+                document.getElementById('followingCount').textContent = following.length;
+                
+                following.forEach(username => {
+                    const div = document.createElement('div');
+                    div.textContent = username;
+                    followingList.appendChild(div);
+                });
+                
+                document.getElementById('followingStats').textContent = 
+                    `Newest: ${getNewestDate(followersHTML)} | Oldest: ${getOldestDate(followersHTML)}`;
+            } else {
+                document.getElementById('followingCount').textContent = '0';
+                document.getElementById('followingStats').textContent = 'No data extracted';
+            }
+            
+            // Compare lists if both exist
+            if (followers.length > 0 && following.length > 0) {
+                const notFollowingBack = following.filter(user => !followers.includes(user));
+                const notFollowingThem = followers.filter(user => !following.includes(user));
+                
+                document.getElementById('comparisonStats').innerHTML = `
+                    <strong>Comparison:</strong><br>
+                    Not following you back: ${notFollowingBack.length} accounts<br>
+                    You're not following back: ${notFollowingThem.length} accounts
+                `;
+            } else {
+                document.getElementById('comparisonStats').innerHTML = '';
+            }
+        });
+
+        // Helper function to get newest date from HTML
+        function getNewestDate(html) {
+            const dates = html.match(/[A-Z][a-z]{2} \d{2}, \d{4} \d{1,2}:\d{2} [ap]m/g) || [];
+            return dates.length > 0 ? dates[0] : 'N/A';
+        }
+
+        // Helper function to get oldest date from HTML
+        function getOldestDate(html) {
+            const dates = html.match(/[A-Z][a-z]{2} \d{2}, \d{4} \d{1,2}:\d{2} [ap]m/g) || [];
+            return dates.length > 0 ? dates[dates.length - 1] : 'N/A';
+        }
+
+        // Copy functions
+        document.getElementById('copyFollowersBtn').addEventListener('click', function() {
+            const followers = Array.from(document.getElementById('followersList').children)
+                                  .map(div => div.textContent)
+                                  .join('\n');
+            
+            if (followers.trim()) {
+                navigator.clipboard.writeText(followers)
+                    .then(() => alert('Followers copied to clipboard!'))
+                    .catch(err => alert('Failed to copy: ' + err));
+            } else {
+                alert('No followers to copy. Extract first.');
+            }
+        });
+
+        document.getElementById('copyFollowingBtn').addEventListener('click', function() {
+            const following = Array.from(document.getElementById('followingList').children)
+                                  .map(div => div.textContent)
+                                  .join('\n');
+            
+            if (following.trim()) {
+                navigator.clipboard.writeText(following)
+                    .then(() => alert('Following copied to clipboard!'))
+                    .catch(err => alert('Failed to copy: ' + err));
+            } else {
+                alert('No following to copy. Extract first.');
+            }
+        });
+
+        document.getElementById('copyAllBtn').addEventListener('click', function() {
+            const followers = Array.from(document.getElementById('followersList').children)
+                                  .map(div => div.textContent)
+                                  .join('\n');
+            
+            const following = Array.from(document.getElementById('followingList').children)
+                                  .map(div => div.textContent)
+                                  .join('\n');
+            
+            let allText = '';
+            if (followers.trim()) {
+                allText += '=== FOLLOWERS ===\n' + followers + '\n\n';
+            }
+            if (following.trim()) {
+                allText += '=== FOLLOWING ===\n' + following + '\n\n';
+            }
+            
+            const comparison = document.getElementById('comparisonStats').textContent;
+            if (comparison.trim()) {
+                allText += '=== COMPARISON ===\n' + comparison;
+            }
+            
+            if (allText.trim()) {
+                navigator.clipboard.writeText(allText)
+                    .then(() => alert('All data copied to clipboard!'))
+                    .catch(err => alert('Failed to copy: ' + err));
+            } else {
+                alert('No data to copy. Extract first.');
+            }
+        });
+    </script>
+</body>
+</html>
